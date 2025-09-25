@@ -1,0 +1,109 @@
+åå// updateFamilyRoot.js
+// Script per aggiornare i record Algolia aggiungendo il campo "family_root"
+
+// updateFamilyRoot.js
+// Script per aggiornare i record Algolia aggiungendo il campo "family_root"
+
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+const algoliasearch = require('algoliasearch');
+
+// Inizializza Algolia
+const ALGOLIA_APP_ID = process.env.ALGOLIA_APP_ID;
+const ALGOLIA_API_KEY = process.env.ALGOLIA_API_KEY;
+const ALGOLIA_INDEX_NAME = process.env.ALGOLIA_INDEX_NAME;
+
+if (!ALGOLIA_APP_ID || !ALGOLIA_API_KEY || !ALGOLIA_INDEX_NAME) {
+  console.error('❌ Config Algolia mancante. Controlla il file .env');
+  process.exit(1);
+}
+
+const client = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_API_KEY);
+const index = client.initIndex(ALGOLIA_INDEX_NAME);
+
+// Funzione per calcolare il campo "family_root"
+function getFamilyRoot(family = '') {
+  if (/daytona/i.test(family)) return 'Daytona';
+  if (/lady-datejust/i.test(family)) return 'Lady-Datejust';
+  if (/datejust/i.test(family)) return 'Datejust';
+  if (/day-date/i.test(family)) return 'Day-Date';
+  return family.split(' ')[0] || 'Altro';
+}
+
+// Script principale
+(async () => {
+  console.log('🔎 Scorro tutti i record su Algolia e calcolo "family_root"...');
+
+  try {
+    await index.browseObjects({
+      batch: async (batch) => {
+        const updates = batch.map(obj => {
+          const root = getFamilyRoot(obj.family);
+          if (!root) return null;
+          return { objectID: obj.objectID, family_root: root };
+        }).filter(Boolean);
+
+        if (updates.length) {
+          console.log(`📦 Aggiorno ${updates.length} records...`);
+          await index.partialUpdateObjects(updates, { createIfNotExists: false });
+        }
+      }
+    });
+
+    console.log('✅ Aggiornamento completato!');
+  } catch (err) {
+    console.error('❌ Errore durante l\'aggiornamento:', err.message);
+  }
+})()node updateFamilyRoot.js
+
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+const algoliasearch = require('algoliasearch');
+
+// Inizializza Algolia
+const ALGOLIA_APP_ID = process.env.ALGOLIA_APP_ID;
+const ALGOLIA_API_KEY = process.env.ALGOLIA_API_KEY;
+const ALGOLIA_INDEX_NAME = process.env.ALGOLIA_INDEX_NAME;
+
+if (!ALGOLIA_APP_ID || !ALGOLIA_API_KEY || !ALGOLIA_INDEX_NAME) {
+  console.error('❌ Config Algolia mancante. Controlla il file .env');
+  process.exit(1);
+}
+
+const client = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_API_KEY);
+const index = client.initIndex(ALGOLIA_INDEX_NAME);
+
+// Funzione per calcolare il campo "family_root"
+function getFamilyRoot(family = '') {
+  if (/daytona/i.test(family)) return 'Daytona';
+  if (/lady-datejust/i.test(family)) return 'Lady-Datejust';
+  if (/datejust/i.test(family)) return 'Datejust';
+  if (/day-date/i.test(family)) return 'Day-Date';
+  return family.split(' ')[0] || 'Altro';
+}
+
+// Script principale
+(async () => {
+  console.log('🔎 Scorro tutti i record su Algolia e calcolo "family_root"...');
+
+  try {
+    await index.browseObjects({
+      batch: async (batch) => {
+        const updates = batch.map(obj => {
+          const root = getFamilyRoot(obj.family);
+          if (!root) return null;
+          return { objectID: obj.objectID, family_root: root };
+        }).filter(Boolean);
+
+        if (updates.length) {
+          console.log(`📦 Aggiorno ${updates.length} records...`);
+          await index.partialUpdateObjects(updates, { createIfNotExists: false });
+        }
+      }
+    });
+
+    console.log('✅ Aggiornamento completato!');
+  } catch (err) {
+    console.error('❌ Errore durante l\'aggiornamento:', err.message);
+  }
+})();

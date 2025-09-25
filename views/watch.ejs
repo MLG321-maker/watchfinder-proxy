@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title><%= brand %> <%= family %> <%= reference %> | Milano Straps Watchfinder</title>
+  <meta name="description" content="Scheda dettagliata per <%= brand %> <%= family %> ref. <%= reference %> - Scopri caratteristiche, dimensioni e cinturini compatibili.">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+    }
+    .card, .description, .related {
+      margin-top: 2rem;
+    }
+    .btn-container {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb">
+      <a href="https://milanostraps.it/pages/enciclopedia-del-cinturino">Home</a> ›
+      <a href="/orologi">Orologi</a> ›
+      <%= brand %> <%= reference %>
+    </nav>
+
+    <!-- Titolo -->
+    <h1><%= brand %> <%= family %> <%= reference %></h1>
+
+    <!-- Scheda tecnica -->
+    <section class="card">
+      <h2>Scheda tecnica</h2>
+      <% if (family) { %><p><strong>Famiglia:</strong> <%= family %></p><% } %>
+      <p><strong>Referenza:</strong> <%= reference %></p>
+      <% if (diameter) { %><p><strong>Diametro:</strong> <%= diameter %> mm</p><% } %>
+      <% if (lug_width) { %><p><strong>Larghezza anse:</strong> <%= lug_width %> mm</p><% } %>
+      <% if (movement) { %><p><strong>Movimento:</strong> <%= movement %></p><% } %>
+      <% if (materials) { %><p><strong>Materiali:</strong> <%= materials %></p><% } %>
+    </section>
+
+    <!-- Descrizione -->
+    <section class="description">
+      <h2>Descrizione</h2>
+      <p><%= description %></p>
+      
+      <div class="btn-container">
+        <% if (lug_width) { 
+             const supportedSizes = [16, 18, 19, 20, 21, 22, 24];
+             let normalizedLug = parseInt(lug_width);
+             if (supportedSizes.includes(normalizedLug)) {
+        %>
+          <a class="btn" href="<%= 'https://milanostraps.it/collections/cinturini-orologi-per-misura-ansa-' + normalizedLug + 'mm' %>">
+            Acquista cinturini compatibili (<%= normalizedLug %> mm)
+          </a>
+        <%   }
+           } %>
+        <a class="btn secondary" href="https://milanostraps.it/pages/contattaci">Richiedi cinturino su misura</a>
+      </div>
+    </section>
+
+    <!-- Referenze collegate -->
+    <% if (relatedRefs && relatedRefs.length > 0) { %>
+      <section class="related">
+        <h2>Referenze collegate</h2>
+        <div class="related-list">
+          <% relatedRefs.forEach(ref => { %>
+            <a class="related-card" href="/orologi/<%= brand.toLowerCase().replace(/\s+/g, '-') %>-<%= ref.toLowerCase() %>">
+              <div class="ref-code"><%= ref %></div>
+            </a>
+          <% }) %>
+        </div>
+      </section>
+    <% } %>
+
+  </div>
+  <style>
+    .related-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      margin-top: 1rem;
+    }
+    .related-pill {
+      display: inline-block;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid #d4af37;
+      background: #fff;
+      color: #2b2b2b;
+      font-weight: 500;
+      font-size: 0.95rem;
+      line-height: 1.4;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      min-width: 80px;
+      text-align: center;
+    }
+    .related-pill:hover {
+      background: #d4af37;
+      color: #fff;
+    }
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-top: 1.5rem;
+      margin-bottom: 1rem;
+      letter-spacing: -0.5px;
+      color: #1a1a1a;
+    }
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-top: 2rem;
+      margin-bottom: 0.8rem;
+      color: #333;
+      border-left: 4px solid #d4af37;
+      padding-left: 0.6rem;
+    }
+    .related-card {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid #d4af37;
+      background: #fff;
+      color: #2b2b2b;
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      min-width: 60px;
+      text-align: center;
+    }
+    .related-card:hover {
+      background: #d4af37;
+      color: #fff;
+    }
+    .ref-code {
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      letter-spacing: 0.5px;
+    }
+  </style>
+</body>
+</html>

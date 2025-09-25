@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Curatore del Glossario</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background-color: #f4f4f9; color: #333; }
+    .container { max-width: 900px; margin: 2rem auto; padding: 2rem; background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    h1, h2 { margin-top: 0; color: #2b2b2b; }
+    input, textarea, select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; margin-bottom: 1rem; box-sizing: border-box; }
+    textarea { min-height: 150px; }
+    button { background-color: #8c6239; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-size: 1rem; cursor: pointer; transition: background-color 0.2s; }
+    button:hover { background-color: #7a5632; }
+    button:disabled { background-color: #ccc; cursor: not-allowed; }
+    .term-item { border: 1px solid #eaeaea; padding: 1.5rem; border-radius: 6px; margin-bottom: 1rem; background: #fafafa; }
+    .term-item.approved { background-color: #e8f5e9; border-color: #a5d6a7; }
+    .term-item h3 { margin: 0 0 0.5rem; }
+    .term-item .meta-desc, .term-item .definition { margin: 0 0 1rem; color: #666; }
+    .term-item .actions button { padding: 8px 12px; font-size: 0.9rem; margin-right: 0.5rem; }
+    .save-options { display: flex; align-items: center; justify-content: flex-end; gap: 1rem; }
+    .console { margin-top: 2rem; background: #111; color: #0f0; padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.9rem; max-height: 250px; overflow-y: auto; }
+    .console-controls { display: flex; justify-content: flex-end; margin-top: 0.5rem; }
+    .console-controls button { background: #444; margin-top: 0; font-size: 0.85rem; }
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; animation: spin 1s linear infinite; margin-left: 6px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Curatore del Glossario</h1>
+
+    <h2>Opzione 1: Analizza da URL</h2>
+    <input type="text" id="url-input" placeholder="Incolla un link qui...">
+    <button id="analyze-url-btn">Analizza URL</button>
+
+    <h2>Opzione 2: Analizza da Testo</h2>
+    <textarea id="text-input" placeholder="Incolla il testo qui..."></textarea>
+    <button id="analyze-text-btn">Analizza Testo</button>
+
+    <div id="results"></div>
+
+    <div id="save-section" style="display: none;">
+      <div class="save-options">
+        <label><input type="checkbox" id="enrich-checkbox" checked> Arricchisci con descrizione AI estesa</label>
+        <button id="save-btn">Salva Termini Approvati</button>
+      </div>
+    </div>
+
+    <div class="console-controls">
+      <button onclick="clearConsole()">Svuota Log</button>
+    </div>
+    <div id="console" class="console"></div>
+  </div>
+
+  <script>
+    const urlBtn = document.getElementById('analyze-url-btn');
+    const textBtn = document.getElementById('analyze-text-btn');
+    const saveBtn = document.getElementById('save-btn');
+    const resultsDiv = document.getElementById('results');
+    const saveSection = document.getElementById('save-section');
+    let approvedTerms = [];
+
+    function logMessage(msg) {
+      const consoleEl = document.getElementById('console');
+      const time = new Date().toLocaleTimeString();
+      consoleEl.innerHTML += `[${time}] ${msg}<br>`;
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+
+    function clearConsole() {
+      document.getElementById('console').innerHTML = '';
+    }
+
+    async function runAnalysis(endpoint, body, btn) {
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.innerHTML = originalText + ' <span class="spinner"></span>';
+      resultsDiv.innerHTML = '';
+      logMessage(`▶️ Analisi avviata su ${endpoint}`);
+
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Errore dal server');
+        renderResults(data.newTerms);
+        logMessage(`✅ Analisi completata, trovati ${data.newTerms.length} termini`);
+      } catch (err) {
+        resultsDiv.innerHTML = `<p style="color:red">Errore: ${err.message}</p>`;
+        logMessage(`❌ Errore: ${err.message}`);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    }
+
+    urlBtn.onclick = () => {
+      const url = document.getElementById('url-input').value.trim();
+      if (!url) return alert('Inserisci un URL valido');
+      runAnalysis('/api/suggest-terms-from-url', { url }, urlBtn);
+    };
+
+    textBtn.onclick = () => {
+      const text = document.getElementById('text-input').value.trim();
+      if (!text) return alert('Inserisci del testo');
+      runAnalysis('/api/suggest-terms', { text }, textBtn);
+    };
+
+    function renderResults(terms) {
+      if (!terms || !terms.length) {
+        resultsDiv.innerHTML = '<p>Nessun termine trovato.</p>';
+        return;
+      }
+      approvedTerms = [];
+      resultsDiv.innerHTML = terms.map(t => `
+        <div class="term-item">
+          <h3>${t.term}</h3>
+          <p class="definition" contenteditable="true">${t.definition}</p>
+          <p class="meta-desc" contenteditable="true">${t.meta_description || ''}</p>
+          <label>Categoria</label>
+          <select>
+            <option ${t.category==='Orologeria'?'selected':''}>Orologeria</option>
+            <option ${t.category==='Componenti'?'selected':''}>Componenti</option>
+            <option ${t.category==='Pelletteria'?'selected':''}>Pelletteria</option>
+            <option ${t.category==='Materiali'?'selected':''}>Materiali</option>
+            <option ${t.category==='Misurazioni'?'selected':''}>Misurazioni</option>
+            <option ${t.category==='Storia e Cultura'?'selected':''}>Storia e Cultura</option>
+          </select>
+          <div class="actions"><button class="approve-btn">Approva</button></div>
+        </div>
+      `).join('');
+      document.querySelectorAll('.approve-btn').forEach(btn => {
+        btn.onclick = e => {
+          e.target.closest('.term-item').classList.toggle('approved');
+          updateApprovedList();
+        };
+      });
+    }
+
+    function updateApprovedList() {
+      approvedTerms = [];
+      document.querySelectorAll('.term-item.approved').forEach(item => {
+        approvedTerms.push({
+          term: item.querySelector('h3').textContent,
+          definition: item.querySelector('.definition').textContent,
+          meta_description: item.querySelector('.meta-desc').textContent,
+          category: item.querySelector('select').value
+        });
+      });
+      saveSection.style.display = approvedTerms.length ? 'block' : 'none';
+    }
+
+    saveBtn.onclick = async () => {
+      if (!approvedTerms.length) return alert('Nessun termine approvato');
+      const enrich = document.getElementById('enrich-checkbox').checked;
+      saveBtn.disabled = true;
+      saveBtn.textContent = enrich ? 'Arricchimento...' : 'Salvataggio...';
+      logMessage(`▶️ Salvataggio ${approvedTerms.length} termini (enrich=${enrich})`);
+
+      try {
+        const response = await fetch('/api/save-terms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ terms: approvedTerms, enrich })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Errore durante salvataggio');
+        alert(`✅ ${approvedTerms.length} termini salvati!`);
+        resultsDiv.innerHTML = '';
+        saveSection.style.display = 'none';
+        logMessage(`✅ Salvataggio completato (${approvedTerms.length} termini)`);
+      } catch (err) {
+        alert('Errore: ' + err.message);
+        logMessage(`❌ Errore: ${err.message}`);
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Salva Termini Approvati';
+      }
+    };
+  </script>
+</body>
+</html>
