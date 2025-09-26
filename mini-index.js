@@ -1,5 +1,7 @@
-// mini-index-debug.js
+const express = require("express");
 const algoliasearch = require("algoliasearch");
+const path = require("path");
+require("dotenv").config();
 
 const {
   ALGOLIA_APP_ID,
@@ -15,30 +17,37 @@ if (!ALGOLIA_APP_ID || !ALGOLIA_ADMIN_KEY || !ALGOLIA_INDEX_NAME) {
 const client = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_ADMIN_KEY);
 const index = client.initIndex(ALGOLIA_INDEX_NAME);
 
-async function run() {
-  const reference = "116518LN";
-  console.log("📥 Ricerca per reference:", reference);
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
+
+app.get("/", (req, res) => {
+  res.send("Server attivo");
+});
+
+app.get("/orologi/:slug", async (req, res) => {
+  const reference = req.params.slug;
 
   try {
-    // 🔎 Ricerca diretta nel campo reference
     const result = await index.search(reference, {
       restrictSearchableAttributes: ["reference"],
-      hitsPerPage: 5
+      hitsPerPage: 1
     });
 
     if (result.hits.length === 0) {
-      console.log("❌ Nessun risultato trovato");
+      res.status(404).send("Orologio non trovato");
     } else {
-      console.log(`✅ Trovati ${result.hits.length} risultati:`);
-      result.hits.forEach((hit, i) => {
-        console.log(
-          `#${i + 1} reference=${hit.reference}, brand=${hit.brand}, family=${hit.family}`
-        );
-      });
+      const watch = result.hits[0];
+      res.render("watch", { watch });
     }
   } catch (err) {
     console.error("❌ Errore in ricerca Algolia:", err);
+    res.status(500).send("Errore server");
   }
-}
+});
 
-run();
+app.listen(PORT, () => {
+  console.log(`Server in ascolto sulla porta ${PORT}`);
+});
